@@ -1,0 +1,58 @@
+---
+title: "hw1"
+author: "Karthik Ranganathan"
+date: "January 30, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+6) Install the maps package (you do not need to load it) and use the ggplo2::map_data function to get data
+## for drawing the "Four Corners" region of the United States (i.e., Arizona, New Mexico, Utah, and Colorado).
+## Install the measurements package and use the measurements::conv_unit function to convert the latitude
+## and longitude information in the dataset to decimal degrees suitable to be used for plotting.
+## Plot a map of the region (you may want to adjust the plotting limits to an appropriate "zoom" level), and
+## overlay the locations of the water sampling sites on the map. Use color to indicate the EPA Section and size
+## to indicate the amount of Uranium-238 measured at each site.
+```{r}
+
+install.packages("maps")
+library(maps)
+install.packages("measurements")
+library(measurements)
+install.packages("mapproj")
+library(mapproj)
+
+map_four_state <- map_data("state",
+                         region=c("colorado","new mexico",
+                                  "utah","arizona")) 
+
+
+
+novajo$Latitude = as.numeric(measurements::conv_unit(novajo$Latitude,
+                                                "deg_dec_min",
+                                                "dec_deg"))
+novajo$Latitude
+
+novajo$Longitude = as.numeric(measurements::conv_unit(novajo$Longitude,
+                                                 "deg_dec_min",
+                                                 "dec_deg"))
+novajo$Longitude
+novajo$Longitude = novajo$Longitude * (-1)
+```
+
+```{r}
+
+ggplot(data = novajo) +
+  geom_point(mapping = aes( x= Longitude, y = Latitude, color = Which.EPA.Section.is.This.From., size = Amount.of.Uranium238)) +
+  geom_polygon(data = map_four_state, mapping = aes(x = long,
+                                         y = lat,
+                                         group = group),
+               fill= NA,
+               color="black")
+```
+

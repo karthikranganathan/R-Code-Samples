@@ -1,0 +1,433 @@
+---
+title: "Home Work 2"
+author: "Karthik Ranganathan"
+date: "February 4, 2018"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+```{r}
+library(readr)
+library(dplyr)
+library(tibble)
+library(measurements)
+library(lattice)
+library(tidyverse)
+library(knitr)
+library(purrr)
+library(tidyr)
+library(ggplot2)
+
+```
+##Part A
+
+# Problem 1
+Find a dataset that is personally interesting to you. It may be a publicly-available dataset, or a dataset for
+which you have permission to use and share results. There are many places on to find publicly-available
+dataset, and simply searching Google for your preferred topic plus "public dataset" may provide many hits.
+Here some additional resources to get you started:
+. US Government datasets (https://catalog.data.gov/dataset)
+. Center for Disease Control (CDC) data (https://data.cdc.gov)
+. Bureau of Labor Statistics (https://www.bls.gov/data/)
+. NASA datasets (https://nssdc.gsfc.nasa.gov)
+. World Bank Open Data (https://data.worldbank.org)
+. Kaggle Datasets (https://www.kaggle.com/datasets)
+This does not have to be the same dataset you will use for your group project.
+Import the dataset into R, put it into a tidy format, and print the first ten observations of the dataset.
+
+```{r}
+
+library(data.table)
+library(DT)
+
+Data <- read.csv("startup_funding.csv")
+```
+
+
+# Problem 2
+Step 1: Perform exploratory data analysis on the dataset, using the techniques learned in class. Calculate
+summary statistics that are of interest to you and create plots using ggplot2 that show your findings.
+1
+Step 2: Create an attractive PowerPoint or Keynote slide including your name, a description of your dataset,
+and your key findings, incorporating any plots and/or tables that are most relevant and interesting. Make
+sure you cite the source of the data!
+Step 3: Export this slide to PDF, and upload it to Piazza as a public Note titled "[mini-poster] your name" in
+the "miniposter" folder, along with a brief description of the dataset by the homework due date.
+
+```{r}
+head(Data,n=10)
+```
+
+
+```{r}
+
+
+City <-Data %>%
+    group_by(CityLocation)%>%
+    summarise(n = n())%>%
+    arrange(desc(n)) %>%
+    head(n =8)
+
+    ind <- seq(1, nrow(City), by=1)
+    City1<-City[ind, ]
+    City1<-City[-5, ]
+    
+City1 %>%    
+    ggplot(aes(x =reorder(CityLocation,n), y =  n )) +
+    geom_bar(stat='identity') +
+    labs(x = 'City', y = 'StartUps', title = 'Location Stats') 
+```
+
+
+
+
+```{r}
+
+
+Sector<-Data%>%
+    group_by(IndustryVertical)%>%
+    summarise(n = n()) %>%
+    arrange(desc(n)) %>%
+    head(n = 9)
+
+ind1 <- seq(1, nrow(Sector), by=1)
+    Sector<-Sector[ind1, ]
+    Sector1<-Sector[-3, ]
+    Sector2<-Sector1[-4, ]
+  
+
+
+Sector2 %>%
+    ggplot(aes(x = reorder(IndustryVertical , n) , y = n)) +
+    geom_bar(stat='identity',colour="white") +
+    labs(x = 'Sectors', y = 'Fundings Recieved', title = 'Startup Sectors') +
+    coord_flip() + 
+    theme_bw()
+```
+
+
+# Part B
+ Problems 3-4 use the US Department of Education's Civil Rights Data Collection from Homework 1. It is available at https://www2.ed.gov/about/offices/list/ocr/docs/crdc-2013-14.html. Use the # read_csv() function to import the dataset into R, handling missing data appropriately
+
+## Problem 3
+ Create a bar plot showing the total number of enrolled students of each race.
+
+```{r}
+library(tidyverse)
+crdc <- read_csv("CRDC2013_14_SCH.csv",
+                 na=c("-9", "-5", "-2"))
+```
+
+
+Hispanic Students = SCH_ENR_HI_M + SCH_ENR_HI_F
+
+American Indians/Alaskan = SCH_ENR_AM_M + SCH_ENR_AM_F
+
+Asian Students = SCH_ENR_AS_M + SCH_ENR_AS_F
+
+Native Hawaiian/Pacific ISland = SCH_ENR_HP_M + SCH_ENR_HP_F
+
+Black Students = SCH_ENR_BL_M + SCH_ENR_BL_F
+
+White Students = SCH_ENR_WH_M + SCH_ENR_WH_F
+
+Total Students = TOT_ENR_M + TOT_ENR_F
+
+```{r}
+crdc_tot <- data.frame(
+                       Hispanic = sum(crdc$SCH_ENR_HI_M , crdc$SCH_ENR_HI_F, na.rm=TRUE),
+                       Indian_Alaskan = sum(crdc$SCH_ENR_AM_M , crdc$SCH_ENR_AM_F, na.rm=TRUE),
+                       Asian = sum(crdc$SCH_ENR_AS_M , crdc$SCH_ENR_AS_F, na.rm=TRUE),
+                       Hawaiian_PAcific = sum(crdc$SCH_ENR_HP_M , crdc$SCH_ENR_HP_F, na.rm=TRUE),
+                       Black = sum(crdc$SCH_ENR_BL_M , crdc$SCH_ENR_BL_F, na.rm=TRUE),
+                       White = sum(crdc$SCH_ENR_WH_M, crdc$SCH_ENR_WH_F, na.rm=TRUE),
+                       Two_or_More = sum(crdc$SCH_ENR_TR_M, crdc$SCH_ENR_TR_F, na.rm=TRUE)
+                      )
+
+                       
+```
+```{r}
+tot <- gather(crdc_tot,'Hispanic','Indian_Alaskan','Asian','Hawaiian_PAcific','Black','White','Two_or_More',key ="races",value = "students")
+tot
+```
+
+```{r}
+ggplot(tot, aes(x=races,y=students,fill=races)) + geom_col()
+```
+
+
+### Inference: the plot tells us White and Hispanic have high number or representation
+
+## Problem 4
+Create a bar plot showing the number of students of each race enrolled in an Advanced Mathematics class.Comment on any similarities or differences between this distribution and the one you plotted in Problem 3
+```{r}
+crdc_adv <- data.frame(
+hispanic = sum(crdc$SCH_MATHENR_ADVM_HI_M ,crdc$SCH_MATHENR_ADVM_HI_F ,na.rm = TRUE),
+Indian_Alaskan = sum(crdc$SCH_MATHENR_ADVM_AM_M ,crdc$SCH_MATHENR_ADVM_AM_F ,na.rm = TRUE),
+Asian = sum(crdc$SCH_MATHENR_ADVM_AS_M , crdc$SCH_MATHENR_ADVM_AS_F, na.rm = TRUE),
+Hawaiian_Pacific = sum(crdc$SCH_MATHENR_ADVM_HP_M , crdc$SCH_MATHENR_ADVM_HP_F , na.rm = TRUE),
+Black = sum(crdc$SCH_MATHENR_ADVM_BL_M, crdc$SCH_MATHENR_ADVM_BL_F, na.rm = TRUE),
+white = sum(crdc$SCH_MATHENR_ADVM_WH_M , crdc$SCH_MATHENR_ADVM_WH_F, na.rm = TRUE),
+Two_or_more = sum(crdc$SCH_MATHENR_ADVM_TR_M, crdc$SCH_MATHENR_ADVM_TR_F, na.rm = TRUE)
+)
+```
+
+```{r}
+Adv <- gather(crdc_adv,'hispanic','Indian_Alaskan','Asian','Hawaiian_Pacific','Black','white','Two_or_more',key ="races",value = "students")
+```
+```{r}
+ggplot(Adv, aes(x=races,y=students,fill=races)) + geom_col()
+```
+### Answer: The plot shows Asian's tend to take advance mathematics in general. Also only 50% of whites and blacks tend to take advanced mathematics. Hispanics have the least record of taking with less then 30%
+
+# Part C
+## Problem 5
+ Filter the data to include only the authors for whom a gender was predicted with a # probability of 0.99 or greater, and then create a bar plot showing the number of distinct male and female authors in the dataset.
+
+
+```{r}
+
+
+library (dbConnect)
+con<- dbConnect(RMySQL::MySQL(),
+        dbname ="dm",
+        host ="localhost",
+        port=3306,
+        user = "root",
+        password = "")
+```
+
+```{r}
+con
+dbListFields(con, '
+             genauth_old')
+dbListTables(con)
+```
+```{r}
+transfer_values <- dbGetQuery(con, "select 'name','gender' from genauth_old where prob>0.98 ")
+summary(transfer_values)
+```
+```{r}
+
+library(RMySQL)
+library(dbConnect)
+library(dbplyr)
+
+
+authors <- dbGetQuery(con, 'SELECT * FROM authors')
+
+
+author1 <- filter(authors, authors$prob >= 0.99, authors$gender == "M" | authors$gender == "F")
+diff_aut <- distinct(author1,name,gender)
+
+ggplot(data = diff_aut)+
+  geom_bar(mapping = aes(x = gender, fill = gender))
+```
+
+### we can see the distinct male and femals authors. 
+## Problem 6
+ 6) Again including only the authors for whom a gender was predicted with a probability of 0.99 or greater, create a stacked bar plot showing the number of distinct male and female authors published each year.
+
+```{r}
+General <- dbGetQuery(con, 'SELECT * FROM general')
+
+Gen_Aut <- inner_join(author1,General, by = 'k')
+
+Gen_Aut %>%
+group_by(year) %>%
+filter(prob >= 0.99, gender == "M" | gender == "F") %>%
+distinct(name,gender) %>%
+ggplot() +
+geom_bar(mapping = aes(x= year, fill = gender))
+
+```
+
+### Inference: We can see the number of authors has grown exponentially. Majorly dominated by male authors. The trend also shows the increase in female authors ratio,
+
+## Problem 7
+7) Still including only the authors for whom a gender was predicted with a probability of 0.99 or greater, create a stacked bar plot showing the proportions of distinct male and female authors published each year. (The stacked bars for each year will sum to one.)
+
+```{r}
+
+Gen <- Gen_Aut %>%
+               filter(prob >= 0.99, gender == "M" | gender == "F")%>%
+               group_by(year,gender) %>%
+               dplyr::count(gender) %>% 
+               distinct(n)
+      
+
+Tot <- Gen_Aut %>%
+               filter(prob >= 0.99 , gender == "M" | gender == "F")%>%
+               group_by(year) %>%
+               dplyr::summarise(n = n())
+
+Prop <- left_join(Gen,Tot,by = 'year')
+
+
+Prop %>%
+  mutate(proportion = n.x/n.y) %>%
+  ggplot() +
+  geom_col(mapping = aes(x = year, y = proportion, fill = gender))
+
+
+
+spread <- spread(Prop,key = gender, value = n.x)
+```
+### Inference: Over a period of time since 1980's women have been increasing their presence, but the graph is still skewed towards men.
+
+
+## Problem 8
+ We would like to investigate how certain questions break down among trans women, trans men, and non-binary participants. However, the survey is sometimes outdated in its terminology and also includes many questioning participants who have not transitioned yet.Transform the data to include 3 gender categories for men, women, and non-binary participants. Use the following definitions when transformaing the dataset: 
+
+(1) trans women are women who were assignedmale-at-birth;
+(2) trans men are men who were assigned-female-at-birth; 
+(3) combine the "Genderqueer" and "Androgynous" categories to create a single "Non-binary" category.
+Filter the dataset to include only participants in these categories.Create a bar plot showing  the number of participants of each of the above genders.
+ 3 Then create bar plots showing the proportion of participants who have been fired or denied a job due to their transgender status and/or gender expression. The plots should be faceted by gender and show separateproportions for trans women, trans men, and non-binary participants. (Do not include missing data in the plot.)
+
+```{r}
+load("C:/Users/Ranga/Desktop/ICPSR_31721/ICPSR_31721/DS0001/31721-0001-Data.rda")
+Gen <- da31721.0001
+```
+
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+
+Gen2 = transmute(Gen,Q6,Q5,Q86,Q84)
+```
+
+
+```{r}
+
+ 
+Gen2$D <- with(Gen2,ifelse(Gen2$Q5 == '(1) Male' & Gen2$Q6 == '(2) Woman', "trans woman", 
+                        ifelse(Gen2$Q5 == '(2) Female' & Gen2$Q6 == '(1) Man', "trans man",
+                              ifelse(Gen2$Q6 == '(4) Androgynous' |Gen2$Q6 =='(6) Gender Queer',"Non-Binary",NA)))) 
+
+Gen3 <- subset(Gen2, !is.na(Gen2$D))
+
+total=count(Gen2)
+
+```
+
+```{r}
+counts <- table(Gen3$D)
+barplot(counts, main="Gender Distribution", 
+  	xlab="Number of Gears")
+```
+
+```{r}
+Gen3$E <- with(Gen3,ifelse(Gen3$Q86 == '(1) Yes' 
+                           | Gen3$Q84 == '(1) Yes', "Yes", "No")) 
+
+```
+```{r}
+
+D1<- Gen2 %>% group_by(D)%>% summarise(total = n())
+
+denied <- Gen2 %>% filter(Q84 == "(1) Yes") %>% group_by(D,Q84) %>% 
+  summarise(count = n())
+
+tot_prop_job <- merge(D1, denied) %>% group_by(D,Q84) %>% 
+  summarise( tot_prop = count/total)
+    
+
+library(ggplot2)
+ggplot(data=tot_prop_job, mapping= aes(x=D, y=tot_prop)) + geom_bar(stat="identity") +
+ labs(title="Plot of ratio of job denial and firing", 
+         x="Genders", y = "Count") + facet_wrap(~ D)
+```
+
+### Inference: Transwomen and Transmen have 25% rate of getting fired or being denied a job. which is higher than the Binary category
+
+# Problem 9
+9) Using the full dataset again, transform the dataset to have a column for race indicating the race of the participant. Include only the racial demographics with publicly available data (i.e., African American, Caucasian, Hispanic/Latinx, and Native American).
+(Participants with two or more races may appear on multiple rows. Do not use the pre-calculated 'RACE' column in the dataset, which does not properly disambiguate multiracial participants.) 
+Then create bar plots showing the proportions of participants who have thought about killing themselves for African American, Caucasian, Hispanic/Latinx, and Native American demographics. (Do not include missing data in the plot.)
+One of the findings reported in the National Transgender Discrimination Survey (http://www.thetaskforce.org/injustice-every-turn-report-national-transgender-discrimination-survey/) was that a staggering 41% of the respondents reported attempting suicide, compared to 1.6% in the general population. Calculate the total proportion of participants who have attempted suicide in the Virginia THIS survey. (Include all participants.)
+Is it higher or lower than the national average for trans people?
+
+```{r}
+
+Race = transmute (Gen, D9_1,D9_2,D9_3,D9_4,D9_5,D9_6,D9_7,QO9,Q131,Q133)
+```
+
+```{r}
+
+Race$D <- with(Race,ifelse(D9_1 == '(1) Selected', "Black", 
+                        ifelse(D9_2 == '(1) Selected', "White",
+                               ifelse(D9_3 == '(1) Selected', "Latino",
+                                  ifelse(D9_4 == '(1) Selected', "Indian",
+                                      ifelse(D9_5 == '(1) Selected', "Asian/Pacific",
+                                           ifelse(D9_6 == '(1) Selected', "Carribean",
+                                                  ifelse(D9_7 == '(1) Selected', "Other"
+                               ,NA)))))))) 
+
+
+Race2 <- subset(Race, !is.na(D))
+Race3 <- subset(Race2,!is.na(Q131))
+
+```
+```{r}
+E1<- Race2 %>% group_by(D)%>% summarise(total = n())
+
+thought <- Race2 %>% filter(Q131 == "(1) Yes") %>% group_by(D,Q131) %>% 
+  summarise(count = n())
+
+tot_prop_t <- merge(E1, thought) %>% group_by(D,Q131) %>% 
+  summarise( tot_propt = count/total)
+    
+
+library(ggplot2)
+ggplot(data=tot_prop_t, mapping= aes(x=D, y=tot_propt)) + geom_bar(stat="identity") +
+ labs(title="Plot of ratio of suicide thoughts", 
+         x="Genders", y = "Count")
+
+```
+
+```{r}
+
+
+Race4 <- Race2 %>% filter(Q133 == "(1) Yes") %>% group_by(Q133) %>% 
+  summarise(count3 = n())
+              percen =  (Race4$count3/count(Race))*100
+              percen
+```
+
+### Answer: The suicide attempt rate in Virginia is 24% as compared to the national average of 41%
+
+# Problem 10
+10) We would like to know if having a birth family supportive of one's gender identity and expression reduces the risk of suicide. Create bar plots showing the proportions of participants who have thought about killing themselves for each level of familial support. (Do not include participants who declined to answer.) What do you notice?
+
+```{r}
+
+Supp = transmute (Gen, Q119,Q131)
+Supp1 = na.omit(Supp)
+
+D2<- Supp1 %>% group_by(Q119)%>% summarise(total = n())
+
+thought1 <- Supp1 %>% filter(Q131 == "(1) Yes") %>% group_by(Q119,Q131) %>% 
+  summarise(count = n())
+
+tot_prop_thoughts <- merge(D2, thought1) %>% group_by(Q119,Q131) %>% 
+  summarise( tot_prop_th = count/total)
+    
+
+library(ggplot2)
+ggplot(data=tot_prop_thoughts, mapping= aes(x=Q119, y=tot_prop_th)) + geom_bar(stat="identity") +
+ labs(title="Plot of relation to family support to sucide thoughts", 
+         x="Support", y = "Proportion") 
+
+```
+
+### Answer: As evident from the graph, as families are more supportive the rate of sucide thoughts go down.
