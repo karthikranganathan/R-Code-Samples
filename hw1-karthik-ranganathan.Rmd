@@ -1,0 +1,513 @@
+---
+title: "hw1-KarthikRanganathan"
+author: "Karthik Ranganathan"
+date: "January 30, 2018"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+```{r}
+
+
+
+library(ggplot2)
+library(maps)
+library(dplyr)
+library(tibble)
+library(measurements)
+library(lattice)
+library(tidyverse)
+library(nycflights13)
+library(knitr)
+library(purrr)
+```
+
+1) Create a bar plot showing the number of flights flown out of New York airports by each carrier in 2013.
+ Which airline carrier flew the most flights? 
+
+ Answer = United Airlines (UA) flew the most out of NYC.
+```{r}
+
+ggplot(data = flights, mapping = aes(x = carrier)) +
+  geom_bar()
+```
+
+2) For each destination, calculate the proportion of flights that arrived at their destination arlier than scheduled.
+ Also calculate the median distance flown to each destination.
+ Plot the proportion of early arrivals (on the y-axis) against the median distance flown (on the x-axis) for
+ each destination. Add a smooth line to the plot. Based on the smooth line, at what distances are flights most
+ likely to arrive early? Describe the relationship between early arrivals and flight distance.
+
+ # Answer= For distance ranging more then 1500 miles and more the flights start to cover upon time to reach early.
+
+```{r}
+flights1 <- flights %>% na.omit(arr_delay)
+
+early_ar <- flights1%>%
+  group_by(carrier) %>%
+  summarise(early_arr=mean(arr_delay < 0))
+
+kable(early_ar)
+
+       
+```
+
+```{r}
+
+  flights %>% group_by(dest) %>% 
+            summarise(dist_m = median(distance),
+            early_arr = n()) %>%
+  ggplot( mapping =aes(x=dist_m, y=early_arr)) +
+   
+  geom_smooth()
+  
+```
+
+
+3) Create two bar plots that characterize each carrier by how early their flights arrive. One should show the
+ proportion of flights that arrive early for each carrier, and the other should show the median number of
+ minutes early that flights arrive for each carrier.
+ Which airlines are the most consistently ahead of schedule? Which airlines arrive the most early?
+ Which airlines are most consistently behind schedule? Which airlines arrive the latest?
+
+ Answer: Airline "AS" has the tendency to early. "FL" and "F9" is airlines which comes consistantly late. 
+
+```{r}
+
+## PArt 1
+  flights %>%
+  group_by(carrier) %>%
+  summarise(early_ar = mean(arr_delay < 0, na.rm = TRUE),
+  count = n()) %>%
+  ggplot(aes(x = carrier ,y= early_ar)) +
+  geom_col()
+```
+```{r}
+## Part 2
+  flights %>%
+  group_by(carrier) %>%
+  summarise(early_minutes = median(arr_delay,na.rm = TRUE),
+  count = n()) %>%
+  ggplot(aes(x = carrier ,y= early_minutes)) +
+  geom_col()
+  
+```
+
+4) Create histograms showing the distribution of the amount of Radium-228 in water samples for each EPA
+ section (use faceting). Do you notice anything odd? (Besides the fact that the water samples are radioactive in the first place?)
+ concentration of radiactive elements in a sample is measured in rate of atomic disintegrations per volume,
+ rather than mass per volume, as used for stable isotopes. This is done by counting the number of atomic
+ disintegrations per minute and comparing it to the mass of the material involved. However, laboratory
+ environments and instruments used for detection create some number of atomic emissions on their own, so
+ background correction must be performed. Because this process involves sampling many times, and the
+ background can be inconsistent, resulting in over-correction, sometimes negative values are reported for the
+ concentration. For practical purposes, these values can be considered zero.
+ Mutate the dataset to replace the negative values with 0, and then create the histograms again, using a
+ different combination of ggplot2 functions this time.
+
+```{r}
+ novajo <- read.csv("C:/Users/Ranga/Desktop/Data Management/NavajoWaterExport.csv",TRUE)
+```
+
+
+```{r }
+library(ggplot2)
+ggplot(novajo, aes(x =Name.of.Water.Source ,y=Amount.of.Radium228)) + geom_histogram(stat='identity')
+   
+```
+  
+## Part 2 - Removing negative values
+
+```{r}
+
+radium <- novajo %>% select('Amount.of.Radium228')
+radium[radium<0] <- 0
+```
+
+## Part 3 Run the plot again
+
+```{r}
+
+ggplot(data = novajo, aes(x =Name.of.Water.Source ,y=radium)) + 
+  geom_histogram(mapping = aes( fill = factor(novajo$Which.EPA.Section.is.This.From.)),
+                                stat = "identity",
+                                position = "dodge") +
+              facet_wrap(~Which.EPA.Section.is.This.From.)
+```
+
+
+ 5) Filter the dataset to remove any sites with "Unknown Risk" for the EPA risk rating.
+ Count the number of sites of each EPA risk rating in each EPA section, and then calculate the mean
+ concentration of Uranium-238 in the water samples for each EPA risk rating in each EPA section.
+ Plot the number of sites at each EPA section using a bar plot, using the fill color of the bars to indicate the
+ risk rating, and then plot the mean concentrations of Uranium-238 for each EPA section using a bar plot,
+ using the fill color of the bars to indicate the risk rating.
+ Which EPA section(s) have the most sites with "More Risk"? Which EPA section(s) have the sites with the
+ highest concentration of Uranium-238 on average?
+
+```{r}
+EPA_Filter  <- novajo %>% filter(US.EPA.Risk.Rating != "Unknown Risk")
+View(EPA_Filter)
+
+Mean_Ur <- EPA_Filter %>% group_by(Which.EPA.Section.is.This.From., US.EPA.Risk.Rating) %>% 
+  summarise(Count_sites = n(),
+            Mean_Ura = mean(Amount.of.Uranium238))
+
+
+ggplot(data = Mean_Ur, mapping = aes(x=Which.EPA.Section.is.This.From., y= Count_sites, fill= factor(Mean_Ur$US.EPA.Risk.Rating))) +
+  geom_bar(stat = "identity")  +
+  labs(x='Section',y='site count')
+
+
+```
+
+## plot 2
+```{r}
+
+ggplot(data = Mean_Ur , mapping = aes(x=Which.EPA.Section.is.This.From., y = Mean_Ura, fill= factor(US.EPA.Risk.Rating))) +
+  geom_bar(stat = "identity") +
+labs(x='Section',y='Mean Uranium')
+```
+
+
+6) Install the maps package (you do not need to load it) and use the ggplo2::map_data function to get data
+## for drawing the "Four Corners" region of the United States (i.e., Arizona, New Mexico, Utah, and Colorado).
+## Install the measurements package and use the measurements::conv_unit function to convert the latitude
+## and longitude information in the dataset to decimal degrees suitable to be used for plotting.
+## Plot a map of the region (you may want to adjust the plotting limits to an appropriate "zoom" level), and
+## overlay the locations of the water sampling sites on the map. Use color to indicate the EPA Section and size
+## to indicate the amount of Uranium-238 measured at each site.
+```{r}
+
+map_four_state <- map_data("state",
+                         region=c("colorado","new mexico",
+                                  "utah","arizona"),TRUE) 
+
+
+
+novajo$Latitude = as.numeric(measurements::conv_unit(novajo$Latitude,
+                                                "deg_dec_min",
+                                                "dec_deg"))
+novajo$Latitude
+
+novajo$Longitude = as.numeric(measurements::conv_unit(novajo$Longitude,
+                                                 "deg_dec_min",
+                                                 "dec_deg"))
+novajo$Longitude
+novajo$Longitude = novajo$Longitude * (-1)
+```
+
+```{r}
+
+ggplot(data = novajo) +
+  geom_point(mapping = aes( x= Longitude, y = Latitude, color = Which.EPA.Section.is.This.From., size = Amount.of.Uranium238)) +
+  geom_polygon(data = map_four_state, mapping = aes(x = long,
+                                         y = lat,
+                                         group = group),
+               fill= NA,
+               color="black")
+```
+
+
+ 
+ 
+Problem 7
+We would like to investigate whether Black students receive a disproportionate number of expulsions under zero-tolerance policies.
+Create a new data.frame or tibble with the following columns:
+. The total number of students enrolled at each school
+. The total number of Black students enrolled at each school
+. The total number of students who received an expulsion under zero-tolerance policies
+. The number of Black students who received an expulsion under zero-tolerance policies
+. The proportion of students at each school who are Black
+. The proportion of students expelled under zero-tolerance policies who are Black
+Filter the data to include only those schools in which at least one student received an expulsion under
+zero-tolerance policies.
+Plot the proportion of Black students at each school (on the x-axis) versus the proportion of expelled students
+who are Black (on the y-axis). Include a smooth line on the plot.
+What do you observe in the plot? Does the plot indicate an over- or under-representation of Black students
+in expulsions under zero-tolerance policies?
+Calculate the overall proportion of Black students across all schools and the overall proportion of students
+expelled under zero-tolerance policies who are Black across all schools.
+
+```{r}
+crdc <- read_csv("C:/Users/Ranga/Desktop/Data Management/CRDC2013_14_SCH.csv",
+                 na=c("-9", "-5", "-2"),TRUE)
+
+
+Tot_Students <- crdc$TOT_ENR_M + crdc$TOT_ENR_F
+
+#  . The total number of Black students enrolled at each school
+SCH_ENR_BL_M + SCH_ENR_BL_F
+
+Tot_Bl_Students <- crdc$SCH_ENR_BL_M  + crdc$SCH_ENR_BL_F
+
+#  . The total number of students who received an expulsion under zero-tolerance policies
+
+TOT_DISCWDIS_EXPZT_IDEA_F 
+TOT_DISCWDIS_EXPZT_IDEA_M
+TOT_DISCWODIS_EXPZT_F
+TOT_DISCWODIS_EXPZT_M
+
+Tot_Expulsion <- crdc$TOT_DISCWDIS_EXPZT_IDEA_F  + crdc$TOT_DISCWDIS_EXPZT_IDEA_M + 
+  crdc$TOT_DISCWODIS_EXPZT_F + crdc$TOT_DISCWODIS_EXPZT_M 
+
+
+#  . The number of Black students who received an expulsion under zero-tolerance policies
+
+SCH_DISCWODIS_EXPZT_BL_M
+SCH_DISCWODIS_EXPZT_BL_F
+SCH_DISCWDIS_EXPZT_IDEA_BL_M
+SCH_DISCWDIS_EXPZT_IDEA_BL_F
+
+
+Tot_Bl_Expulsion <- crdc$SCH_DISCWODIS_EXPZT_BL_M + crdc$SCH_DISCWODIS_EXPZT_BL_F + 
+  crdc$SCH_DISCWDIS_EXPZT_IDEA_BL_M + crdc$SCH_DISCWDIS_EXPZT_IDEA_BL_F
+
+#  . The proportion of students at each school who are Black
+
+Prop_Bl_Students <- Tot_Bl_Students / Tot_Students
+
+#  . The proportion of students expelled under zero-tolerance policies who are Black
+
+Prop_Bl_Expelled_Students <- Tot_Bl_Expulsion / Tot_Expulsion
+
+```
+ 
+```{r}
+
+# Creating a Data frame
+DATA_FRAME <- data.frame(Tot_Students,Tot_Bl_Students,Tot_Expulsion,Tot_Bl_Expulsion,
+                            Prop_Bl_Students,Prop_Bl_Expelled_Students)
+
+# Filter the data to include only those schools in which at least one student received an expulsion under
+# zero-tolerance policies.
+
+Filtered_FRAME <- filter(DATA_FRAME,Tot_Expulsion >= 1)
+
+# Plot the proportion of Black students at each school (on the x-axis) versus the proportion of expelled students
+# who are Black (on the y-axis). Include a smooth line on the plot.
+
+ggplot(data = DATA_FRAME, mapping = aes(x=Prop_Bl_Students, y= Prop_Bl_Expelled_Students), na.rm = TRUE) +
+  geom_point() +
+  geom_smooth() +
+  labs(x= '% Proportion of black students', y = '% proportion of black students expelled')
+
+```
+ # Answer: The ratio of black students expelled is higher then their representation ratio in each school.
+```{r}
+
+
+# Calculate the overall proportion of Black students across all schools and the overall proportion of students
+# expelled under zero-tolerance policies who are Black across all schools.
+
+summarise(crdc,
+          Prop_Bl=sum(Tot_Bl_Students, na.rm=TRUE) / sum(Tot_Students, na.rm=TRUE),
+          prop_Bl_Expulsion=sum(Tot_Bl_Expulsion, na.rm=TRUE) / sum(Tot_Expulsion, na.rm=TRUE))
+
+```
+ 
+ 
+  8) We would like to investigate whether Hispanic students are over- or under-represented in Gifted & Talented
+ programs.
+ Create a new data.frame or tibble containing only schools with a Gifted & Talented program with the
+ following columns:
+ . The total number of students enrolled at each school
+ . The total number of Hispanic students at each school
+ . The total number of students in the school's GT program
+ . The number of students in the GT program who are Hispanic
+ . The proportion of students at each school who are Hispanic
+ . The proportion of students in the GT program who are Hispanic
+ Plot the proportion of Hispanic students at each school (on the x-axis) versus the proportion of GT students
+ who are Hispanic (on the y-axis). Include a smooth line on the plot.
+ What do you observe in the plot? Does the plot indicate an over- or under-representation of Hispanic students
+ in Gifted & Talented programs?
+ Calculate the overall proportion of Hispanic students across all schools and the overall proportion of GT
+ students who are Hispanic.
+```{r}
+
+# . The total number of Hispanic students at each school
+Tot_Hispanic <- crdc$SCH_ENR_HI_M + crdc$SCH_ENR_HI_F
+
+
+# . The total number of students in the school's GT program
+Tot_GT <- crdc$TOT_GTENR_M + crdc$TOT_GTENR_F
+
+# . The number of students in the GT program who are Hispanic
+Tot_GT_His <- crdc$SCH_GTENR_HI_M + crdc$SCH_GTENR_HI_F
+
+# . The proportion of students at each school who are Hispanic
+Prop_Hispanic <- Tot_Hispanic/Tot_Students
+
+# . The proportion of students in the GT program who are Hispanic
+ Prop_GT <- (crdc$SCH_GTENR_HI_M + crdc$SCH_GTENR_HI_F)/(crdc$TOT_GTENR_M + crdc$TOT_GTENR_F)
+
+
+```
+
+```{r}
+crdc %>% 
+   ggplot(aes(x=Prop_Hispanic, y=Tot_GT_His/Tot_Students)) +
+   geom_point(alpha=1/10, size=0.5) + geom_smooth(se=FALSE) +
+   geom_segment(aes(x=0, y=0, xend=1, yend=1), color="red") +
+   coord_fixed() +
+   labs(x='% Proportion of Hispanic students among all students', 
+        y='% Proportion of GT Hispanic students among suspended students')
+```
+## The Graph represents under representation of hispanic students in the GT program.
+ 
+```{r}
+
+ summarise(crdc,
+           Prop_Hispanic1=sum(Tot_Hispanic, na.rm=TRUE) / sum(Tot_Students, na.rm=TRUE),
+           prop_Hispanic_GT=sum(Tot_GT, na.rm=TRUE) / sum(Tot_Hispanic, na.rm=TRUE))
+ 
+```
+ 
+  9) We would like to investigate whether disabled students are more often referred to a law enforcement agency or official.
+  Create a new data.frame or tibble containing only schools that use corporal punishment with the following columns:
+  . The total number of students enrolled at each school
+  . The total number of disabled students (under IDEA and/or 504) at each school
+  . The total number of students who were disciplined with corporal punishment
+  . The number of disabled students who were disciplined with corporal punishment
+  . The proportion of students at each school who are disabled
+  . The proportion of students who were disciplined with corporal punishment who are disabled
+  Filter the data to include only those schools without errors in data entry (i.e., remove all schools with more
+  disabled students enrolled than the total number of enrolled students).
+  Plot the proportion of disabled students at each school (on the x-axis) versus the proportion of students
+  referred to law enforcement who are disabled (on the y-axis). Include a smoothing line on the plot.
+  What do you observe in the plot? Does the plot indicate an over- or under-representation of disabled students
+  among students who are referred to law enforcement?
+  Calculate the overall proportion of disabled students across all schools and the overall proportion of students
+  referred to law enforcement who are disabled across all schools.
+ 
+```{r}
+
+ # . The total number of disabled students (under IDEA and/or 504) at each school
+ Tot_IDEA_504 <- crdc$TOT_IDEAENR_M + crdc$TOT_IDEAENR_F + crdc$TOT_504ENR_M + crdc$TOT_504ENR_F
+ 
+ # . The total number of students who referred to a law enforcement agency or official
+Tot_Referral <- crdc$TOT_DISCWODIS_REF_M + crdc$TOT_DISCWODIS_REF_F + crdc$TOT_DISCWDIS_REF_IDEA_M + crdc$TOT_DISCWDIS_REF_IDEA_F
+ 
+ 
+ # . The number of disabled students who referred to a law enforcement agency or official
+Tot_Dis_Referral <-  crdc$TOT_DISCWDIS_REF_IDEA_M + crdc$TOT_DISCWDIS_REF_IDEA_F
+ 
+ 
+ 
+ # . The proportion of students at each school who are disabled
+Prop_Disable <- (crdc$TOT_IDEAENR_M + crdc$TOT_IDEAENR_F + crdc$TOT_504ENR_M + crdc$TOT_504ENR_F)/(crdc$TOT_ENR_M + crdc$TOT_ENR_F)
+ 
+# . The proportion of students who were referred to a law enforcement agency or official who are disabled
+Prop_Dis_Referral <- (crdc$TOT_DISCWDIS_REF_IDEA_M + crdc$TOT_DISCWDIS_REF_IDEA_F)/(crdc$TOT_DISCWODIS_REF_M + crdc$TOT_DISCWODIS_REF_F + crdc$TOT_DISCWDIS_REF_IDEA_M + crdc$TOT_DISCWDIS_REF_IDEA_F)
+
+```
+
+```{r}
+
+Data_Frame2 <- data.frame(Tot_Students, Tot_IDEA_504, Tot_Dis_Referral, Tot_Referral, 
+                         Prop_Disable,
+                         Prop_Dis_Referral)
+
+# Filter the data to include only those schools without errors in data entry (i.e., remove all schools with more
+# disabled students enrolled than the total number of enrolled students).
+
+Filterer_Data_Frame2 <- filter(Data_Frame2, Tot_Bl_Students >Tot_IDEA_504)
+
+
+
+```
+
+```{r}
+
+Filterer_Data_Frame2 %>% sample_n(10000) %>%
+  ggplot(aes(x=Prop_Disable, y=Prop_Dis_Referral)) +
+  geom_point(alpha=1/10, size=0.5) + geom_smooth(se=FALSE) +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), color="red") +
+  coord_fixed() +
+  labs(x='% Disable students among all students', y='% Disable students Referral')
+
+```
+
+# The plot suggests that school which are not specifically are meant to handle disabled 
+# students tend to have over representation of students. who are referred to law. Where are
+# schools which have high concentration of disabled students tend to have less
+
+
+```{r}
+
+summarise(crdc,
+          Prop_Disable=sum(Tot_IDEA_504, na.rm=TRUE) / sum(Tot_Students, na.rm=TRUE),
+          Prop_referral_disable=sum(Tot_Dis_Referral, na.rm=TRUE) / sum(Tot_Students, na.rm=TRUE))
+
+```
+
+ 10) Develop your own question about whether a particular demographic is over- or under-represented in a
+ particular aspect of the education system. State your question.
+Process, plot, and summarise the data to answer your question. State what you observe in the plot and your
+conclusions based on the plot and the summary statistics.
+
+```{r}
+
+# Total no. of Students reported as Harassed or bullied by sex, race, or disability.
+
+Tot_Harass <- crdc$TOT_HBREPORTED_SEX_M + crdc$TOT_HBREPORTED_SEX_F + crdc$TOT_HBREPORTED_RAC_M + crdc$TOT_HBREPORTED_RAC_F + crdc$TOT_HBREPORTED_DIS_M + crdc$TOT_HBREPORTED_DIS_F
+
+# Total no. of students displined for Harassing or bullying
+
+Tot_Displined <- crdc$TOT_HBDISCIPLINED_SEX_M + crdc$TOT_HBDISCIPLINED_SEX_F +  crdc$TOT_HBDISCIPLINED_RAC_M + crdc$TOT_HBDISCIPLINED_RAC_F + crdc$TOT_HBDISCIPLINED_DIS_M + crdc$TOT_HBDISCIPLINED_DIS_F
+
+# Total no. of White male reported as harassed or bullied
+
+Tot_Wh_report <- crdc$SCH_HBREPORTED_SEX_WH_M + crdc$SCH_HBREPORTED_SEX_WH_F + crdc$SCH_HBREPORTED_RAC_WH_M + crdc$SCH_HBREPORTED_RAC_WH_F + crdc$SCH_HBREPORTED_DIS_WH_M + crdc$SCH_HBREPORTED_DIS_WH_F
+
+# Total no. of white displined for harassing
+
+Tot_Wh_Displined <- crdc$SCH_HBDISCIPLINED_SEX_WH_M + crdc$SCH_HBDISCIPLINED_SEX_WH_F + crdc$SCH_HBDISCIPLINED_RAC_WH_M + crdc$SCH_HBDISCIPLINED_RAC_WH_F + crdc$SCH_HBDISCIPLINED_DIS_WH_M + crdc$SCH_HBDISCIPLINED_DIS_WH_F
+
+
+# Total no. of Hispanics Displined for harassing
+
+Tot_Hi_Displined <- crdc$SCH_HBDISCIPLINED_DIS_HI_M + crdc$SCH_HBDISCIPLINED_DIS_HI_F + crdc$SCH_HBDISCIPLINED_RAC_HI_M + crdc$SCH_HBDISCIPLINED_RAC_HI_F +crdc$SCH_HBREPORTED_DIS_HI_M + crdc$SCH_HBREPORTED_DIS_HI_F
+
+# Total no. of Blacks Displined for Harassing
+
+Tot_Bl_Displined <- crdc$SCH_HBREPORTED_DIS_BL_M + crdc$SCH_HBREPORTED_DIS_BL_F + crdc$SCH_HBREPORTED_RAC_BL_M + crdc$SCH_HBREPORTED_RAC_BL_F + crdc$SCH_HBREPORTED_SEX_BL_M + crdc$SCH_HBREPORTED_SEX_BL_F
+
+#Proportion of displined student
+Prop_Dis <- Tot_Displined/Tot_Students
+
+# Proportion of black students displined
+Prop_Bl_Dis <- Tot_Bl_Displined/Tot_Displined
+
+# Proportion of Hispanic Students Displined
+Prop_Hi_Dis <- Tot_Hi_Displined/Tot_Displined
+
+# Proportion of White Students Displined
+Prop_Wh_Dis <- Tot_Wh_Displined/Tot_Displined
+
+```
+
+```{r}
+
+crdc2 <- na.omit(crdc2) %>% 
+  filter(Prop_Bl_Dis<=1 && Prop_Dis<1) 
+        
+
+
+crdc2 %>%na.omit(crdc2) %>%
+  ggplot( mapping = aes(x=Prop_Bl_Students, y=Prop_Bl_Dis)) +
+  geom_point() + geom_smooth() +
+  geom_segment(aes(x=0, y=0, xend=1, yend=1), color="red") +
+  coord_fixed() +
+  labs(x='% represenation of black students among all students', y='% Displined students black ')
+
+```
+
+## Ignoring the outlining points if we consider the ratio of black students displined in schools where the ratio is their representation is low. They have high displined rate, where as were their representation is high they have lower displined rate. The graph might be correct as one student might get displined multiple times.
